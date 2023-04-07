@@ -3,10 +3,11 @@ package parser
 import (
 	"bufio"
 	"bytes"
-	"fmt"
-	"rdsauditlogss3/internal/entity"
 	"io"
+	"rdsauditlogss3/internal/entity"
+	"strconv"
 	"strings"
+	"regexp"
 	"time"
 )
 
@@ -27,24 +28,47 @@ func (p *AuditLogParser) ParseEntries(data io.Reader, logFileTimestamp int64) ([
 		if txt == "" {
 			continue
 		}
-
-		record := strings.Split(txt,",")
-
-		if len(record) < 2 {
-			return nil, fmt.Errorf("could not parse data")
+		re := regexp.MustCompile(`\r?\t`)
+		txt=re.ReplaceAllString(txt, " ")
+		record := strings.Split(txt, ",")
+		if len(record)==1 {
+			record = strings.Split(txt, " ")
 		}
-
-		ts, err := time.Parse("20060102 15:04:05", record[0])
+			
+		ts, err := time.Parse("2006-01-02T15:04:05.000000Z", record[0])
 		if err != nil {
-			return nil, fmt.Errorf("could not parse time: %v", err)
+			ts, err = time.Parse("2006-01-02T15:04:05+07:00", record[0])
+		}
+		
+		if err != nil {
+			timestamp := record[0]
+			if len(timestamp) >13 {
+				timestamp = timestamp[:len(timestamp)-6]
+			}
+			intTime, errInt := strconv.ParseInt(timestamp, 10, 64)
+			if errInt == nil {
+				err=nil
+			}
+			ts= time.Unix(intTime, 0)
 		}
 
-		newTS := entity.LogEntryTimestamp{
-			Year:  ts.Year(),
-			Month: int(ts.Month()),
-			Day:   ts.Day(),
-			Hour:  ts.Hour(),
+		if err != nil  && currentEntry == nil {
+			continue
 		}
+
+		 var newTS  entity.LogEntryTimestamp
+		if err == nil {
+			newTS = entity.LogEntryTimestamp{
+				Year:  ts.Year(),
+				Month: int(ts.Month()),
+				Day:   ts.Day(),
+				Hour:  ts.Hour(),
+			}
+		}else{
+			newTS = currentEntry.Timestamp
+		}
+
+		
 
 		if currentEntry != nil && currentEntry.Timestamp != newTS {
 			entries = append(entries, currentEntry)

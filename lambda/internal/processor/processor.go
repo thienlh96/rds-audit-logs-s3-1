@@ -73,7 +73,9 @@ func (p *Processor) Process() error {
 
 		for _, entry := range logEntries {
 			processedLogFiles += 1
-
+			if entry==nil {
+				continue
+			}
 			err := p.S3Writer.WriteLogEntry(*entry)
 			if err != nil {
 				logrus.WithError(err).Warn("Could not write log entry")

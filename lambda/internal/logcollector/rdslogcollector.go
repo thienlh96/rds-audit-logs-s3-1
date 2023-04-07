@@ -35,7 +35,7 @@ func (l *LogFile) String() string {
 }
 
 func (l *LogFile) IsRotatedFile() bool {
-	matched, err := regexp.Match(`\.log\.\d+$`, []byte(l.LogFileName))
+	matched, err := regexp.Match(`\.log\.\d`, []byte(l.LogFileName))
 	if err != nil {
 		log.Warnf("Error matching log file: %v", err)
 		return false
@@ -54,13 +54,13 @@ type RdsLogCollector struct {
 	logFile            string
 }
 
-func NewRdsLogCollector(api rdsiface.RDSAPI, httpClient HTTPClient, region string, rdsInstanceIdentifier string, dbType string) *RdsLogCollector {
+func NewRdsLogCollector(api rdsiface.RDSAPI, httpClient HTTPClient, region string, rdsInstanceIdentifier string, dbType string, LogPrefix string) *RdsLogCollector {
 	return &RdsLogCollector{
 		rds:                api,
 		region:             region,
 		httpClient:         httpClient,
 		dbType:             dbType,
-		logFile:            "audit/server_audit.log",
+		logFile:            LogPrefix,
 		instanceIdentifier: rdsInstanceIdentifier,
 	}
 }
@@ -177,6 +177,10 @@ func (c *RdsLogCollector) setRdsInstanceDBType(instance *rds.DBInstance) error {
 	case "mariadb":
 		dbType = "mysql"
 	case "postgres":
+		dbType = "postgres"
+	case "aurora-postgres":
+		dbType = "postgres"
+	case "aurora-mysql":
 		dbType = "postgres"
 	default:
 		return fmt.Errorf("unsupported engine %s", engine)
