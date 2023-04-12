@@ -2,14 +2,14 @@ package main
 
 import (
 	"fmt"
-	// "github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 
-	// "github.com/kelseyhightower/envconfig"
+	"github.com/kelseyhightower/envconfig"
 	"rdsauditlogss3/internal/database"
 	"rdsauditlogss3/internal/logcollector"
 	"rdsauditlogss3/internal/parser"
@@ -46,43 +46,40 @@ func (lh *lambdaHandler) Handler() error {
 
 func main() {
 	var c HandlerConfig
-	c.AwsRegion = "us-east-1"
-	c.DynamoDbTableName = "rds-cache-timestamp"
-	c.S3BucketName = "cf-templates-6w08wj2iqgqp-us-east-1"
-	c.RdsInstanceIdentifier = "mothership-instance-1"
-	c.FolderS3 = "audit_log"
-	c.LogPrefix = "audit/audit"
-	c.Debug = true
-	// err := envconfig.Process("", &c)
-	// if err != nil {
-	// 	log.WithError(err).Fatal("Error parsing configuration")
-	// }
+	// Dev env
+	// c.AwsRegion = "us-east-1"
+	// c.DynamoDbTableName = "rds-cache-timestamp"
+	// c.S3BucketName = "cf-templates-6w08wj2iqgqp-us-east-1"
+	// c.RdsInstanceIdentifier = "mothership-instance-1"
+	// c.FolderS3 = "audit_log"
+	// c.LogPrefix = "audit/audit"
+	// c.Debug = true
+
+	err := envconfig.Process("", &c)
+	if err != nil {
+		log.WithError(err).Fatal("Error parsing configuration")
+	}
 
 	if c.Debug {
 		log.SetLevel(log.DebugLevel)
 	}
 
 	// Initialize AWS session
-	// sessionConfig := &aws.Config{
-	// 	Region: aws.String(c.AwsRegion),
-	// }
-
-	// // sess := session.New(sessionConfig)
-
-	// sess := session.Must(session.NewSessionWithOptions(session.Options{
-	// 	Profile: "torus_wl_stag",
-	// 	Config:  aws.Config{Region: aws.String("us-east-1")},
-	// }))
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Profile: "605272924796_wl_stag_infraops_4h_permset",
-		Config:  aws.Config{Region: aws.String("us-east-1")},
-		SharedConfigState: session.SharedConfigEnable,
-		
-
-	})
-	if err!= nil {
-
+	sessionConfig := &aws.Config{
+		Region: aws.String(c.AwsRegion),
 	}
+
+	sess := session.New(sessionConfig)
+
+	// Dev session
+	// sess, err := session.NewSessionWithOptions(session.Options{
+	// 	Profile: "605272924796_wl_stag_infraops_4h_permset",
+	// 	Config:  aws.Config{Region: aws.String("us-east-1")},
+	// 	SharedConfigState: session.SharedConfigEnable,
+	// })
+	// if err!= nil {
+	// 	fmt.Println(err)
+	// }
 	// Create & start lambda handler
 	lh := &lambdaHandler{
 		processor: processor.NewProcessor(
@@ -107,6 +104,7 @@ func main() {
 			c.RdsInstanceIdentifier,
 		),
 	}
-	lh.Handler()
-	// lambda.Start(lh.Handler)
+	// dev main
+	// lh.Handler()
+	lambda.Start(lh.Handler)
 }
