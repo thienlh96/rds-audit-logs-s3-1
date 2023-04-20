@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-
-	"github.com/aws/aws-lambda-go/lambda"
+	"time"
+	// "github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -59,6 +59,7 @@ func main() {
 	sess := session.New(sessionConfig)
 
 	// Create & start lambda handler
+	cond :=true
 	lh := &lambdaHandler{
 		processor: processor.NewProcessor(
 			database.NewDynamoDb(
@@ -81,5 +82,12 @@ func main() {
 			c.RdsInstanceIdentifier,
 		),
 	}
-	lambda.Start(lh.Handler)
+	for cond{
+		select {
+		case <-time.After(30 * time.Second):
+			fmt.Println("Start proccess collector")
+			lh.Handler()
+		}
+	}
+	// lambda.Start(lh.Handler)
 }
